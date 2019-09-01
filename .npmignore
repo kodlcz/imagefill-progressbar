@@ -1,5 +1,11 @@
 .idea
-lib
-lib-esm
-_bundles
+.DS_Store
+**/.*
+**/webpack.common.js
+**/webpack.dev.js
+**/webpack.prod.js
+**/webpack.config.js
+**/tsconfig.json
+**/node_modules
+src
 examples

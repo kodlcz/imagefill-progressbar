@@ -11,7 +11,8 @@
     "clean": "shx rm -rf _bundles lib lib-esm build",
     "compile": "npm run clean && tsc && tsc -m es6 --outDir lib-esm",
     "bundle": "cross-env webpack --config webpack.prod.js",
-    "build": "run-s compile bundle"
+    "build": "run-s compile bundle",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [],
   "author": "",
