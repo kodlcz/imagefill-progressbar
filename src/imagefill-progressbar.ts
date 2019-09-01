@@ -1,6 +1,6 @@
 import { easingFunctions, isElement } from './utils';
 
-class ImageFillProgressBar {
+export class ImageFillProgressBar {
   private readonly ratio = window.devicePixelRatio || 1;
   private readonly browserRefreshRate = 1000 / 60;
   private readonly config: any = {
