@@ -1,6 +1,6 @@
 {
   "name": "imagefill-progressbar",
-  "version": "0.1.2-0",
+  "version": "0.1.2",
   "description": "An image fill progress bar",
   "main": "lib/imagefill-progressbar.js",
   "typings": "lib/imagefill-progressbar.d.ts",
