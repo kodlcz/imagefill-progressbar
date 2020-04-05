@@ -7,26 +7,45 @@
   "jsnext:main": "lib-esm/imagefill-progressbar.js",
   "module": "lib-esm/imagefill-progressbar.js",
   "scripts": {
+    "test": "echo \"No test specified\"",
     "start": "webpack-dev-server --open --config webpack.dev.js",
     "clean": "shx rm -rf _bundles lib lib-esm build",
     "compile": "npm run clean && tsc && tsc -m es6 --outDir lib-esm",
     "bundle": "cross-env webpack --config webpack.prod.js",
     "build": "run-s compile bundle",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "build:examples": "cd examples && cross-env webpack --config webpack.config.js",
+    "prebuild:examples": "npm run clean:examples",
+    "clean:examples": "shx rm -rf examples/dist",
+    "start:examples": "cd examples && webpack-dev-server --mode development"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "progressbar",
+    "image",
+    "javascript",
+    "fun",
+    "canvas",
+    "loader",
+    "typescript"
+  ],
+  "author": "Attila Daczo <daczo.attila@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/attl8d/imagefill-progressbar.git"
   },
+  "bugs": {
+    "url": "https://github.com/attl8d/imagefill-progressbar/issues"
+  },
+  "homepage": "https://github.com/attl8d/imagefill-progressbar#readme",
   "devDependencies": {
     "@babel/core": "^7.5.4",
     "@babel/preset-env": "^7.5.4",
     "babel-loader": "^8.0.6",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "copy-webpack-plugin": "^5.0.4",
     "cross-env": "^5.2.1",
+    "html-webpack-plugin": "^3.2.0",
     "npm-run-all": "^4.1.5",
     "shx": "^0.3.2",
     "ts-loader": "^6.0.4",

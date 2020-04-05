@@ -1,5 +1,5 @@
-import { easingFunctions, isElement } from './utils';
-import { ImageFillProgressBarConfig } from './ImageFillProgressBarConfig';
+import {easingFunctions, isElement} from './utils';
+import {ImageFillProgressBarConfig} from './ImageFillProgressBarConfig';
 
 export class ImageFillProgressBar {
   private readonly ratio = window.devicePixelRatio || 1;
@@ -10,15 +10,18 @@ export class ImageFillProgressBar {
     },
     easingFunction: easingFunctions.easeOutQuint,
     showNumericDisplay: true,
-    numericDisplayFormatter: (val: number) => val.toString()
+    numericDisplayFormatter: (val: number) => val.toString(),
+    backgroundSrc: null,
+    foregroundSrc: null,
+    container: ''
   };
 
-  private progress = 0;
   private currentX = 0;
+  private progress = 0;
   private requestAnimationId: number = null;
   private canvas: HTMLCanvasElement;
   private canvasContext: CanvasRenderingContext2D;
-  private container: Element;
+  private container: HTMLElement;
   private numericDisplay: HTMLElement;
   private iterationCount: number;
   private width: number;
@@ -31,6 +34,12 @@ export class ImageFillProgressBar {
         <div class="numeric-display"></div>
     </section> 
   `;
+  private get imageSize() {
+    return {
+      imageWidth: this.foreground.width,
+      imageHeight: this.foreground.height
+    }
+  }
 
   constructor(config = {}) {
     this.config = Object.assign({}, this.config, config);
@@ -42,31 +51,17 @@ export class ImageFillProgressBar {
     this.animate()
   }
 
-  async init(selector: string | Element): Promise<void> {
-    this.iterationCount = Math.floor(this.config.animationDurationMs / this.browserRefreshRate);
+  async init(): Promise<void> {
+    const {config} = this;
+    this.iterationCount = Math.floor(config.animationDurationMs / this.browserRefreshRate);
 
-    this.container = this.resolveContainer(selector);
-    this.container.innerHTML = this.template;
-    this.canvas = this.container.querySelector('canvas');
-    this.canvasContext = this.canvas.getContext('2d');
-    this.numericDisplay = this.container.querySelector('.numeric-display');
-    this.numericDisplay.style.display = this.config.showNumericDisplay ? 'block' : 'none';
-    this.foreground = await this.loadImage(this.config.foregroundSrc);
-    this.background = await this.loadImage(this.config.backgroundSrc);
-
-    window.addEventListener('resize', this.resize.bind(this));
+    this.setContainer();
+    this.setCanvas();
+    this.setNumericDisplay();
+    await this.loadImages();
+    this.registerResizehandler();
     this.updateCanvasSize();
     this.animate();
-  }
-
-  private resolveContainer(selector: string | Element): Element {
-    const container = typeof selector === 'string' ? document.querySelector(selector) : selector;
-
-    if (!isElement(container)) {
-      throw(new Error('[ImageFillProgressBar] Invalid selector'));
-    }
-
-    return container;
   }
 
   private resize() {
@@ -75,82 +70,87 @@ export class ImageFillProgressBar {
   }
 
   private updateCanvasSize() {
-    if (!this.config.width && !this.config.height) {
-      const containerBB = this.container.getBoundingClientRect();
-      this.currentX = this.currentX > 0 ? (this.currentX / this.width) * containerBB.width : 0;
-      this.width = containerBB.width;
-      this.height = this.foreground.height / this.foreground.width * this.width;
-    } else if (this.config.width && !this.config.height) {
-      this.width = this.config.width;
-      this.height = this.foreground.height / this.foreground.width * this.config.width;
-    } else if (!this.config.width && this.config.height) {
-      this.height = this.config.height;
-      this.width = this.foreground.width / this.foreground.height * this.config.height;
-    }
+    const {canvas, canvasContext, ratio, currentX} = this;
+    const {targetWidth, targetHeight} = this.getTargetSize();
+    const {imageWidth, imageHeight} = this.imageSize;
+    const scale = this.getScale(targetWidth, targetHeight);
 
-    this.canvas.width = this.width * this.ratio;
-    this.canvas.height = this.height * this.ratio;
-    this.canvas.style.width = this.width + 'px';
-    this.canvas.style.height = this.height + 'px';
-    this.canvasContext.scale(this.ratio, this.ratio);
+    this.width = scale * imageWidth;
+    this.height = scale * imageHeight;
+
+    this.currentX = currentX > 0 ? (currentX / this.width) * targetWidth : 0;
+
+    canvas.width = this.width * ratio;
+    canvas.height = this.height * ratio;
+    canvas.style.width = `${this.width}px`;
+    canvas.style.height = `${this.height}px`;
+    canvasContext.scale(ratio, ratio);
   }
 
+
   private animate() {
-    const targetX = ((this.progress * this.width) / 100) - this.currentX;
-    this.requestAnimationId = window.requestAnimationFrame(this.step.bind(this, this.currentX, 0, targetX));
+    const {progress, width, step, currentX} = this;
+    const targetX = ((progress * width) / 100) - currentX;
+    this.requestAnimationId = window.requestAnimationFrame(step.bind(this, currentX, 0, targetX));
   }
 
   private step(offset: number, currentIteration: number, targetX: number) {
-    let x = this.config.easingFunction(currentIteration / this.iterationCount) * targetX;
+    const {config, drawFrame, iterationCount, step, width} = this;
+    let x = config.easingFunction(currentIteration / iterationCount) * targetX;
     x += offset;
-    this.drawFrame.call(this, x);
+    drawFrame.call(this, x);
     this.currentX = x;
     currentIteration++;
 
     this.updateNumericDisplay();
 
-    if (currentIteration <= this.iterationCount) {
-      this.requestAnimationId = window.requestAnimationFrame(this.step.bind(this, offset, currentIteration, targetX));
+    if (currentIteration <= iterationCount) {
+      this.requestAnimationId = window.requestAnimationFrame(step.bind(this, offset, currentIteration, targetX));
     }
 
-    if (x === this.width) {
-      this.config.onComplete();
+    if (x === width) {
+      config.onComplete();
     }
   }
 
   private drawFrame(x: number) {
-    this.canvasContext.clearRect(0, 0, this.width, this.height);
-    const offset = x * (this.background.width / this.width);
-    this.canvasContext.drawImage(this.foreground,
-      0, //sx
-      0, //sy
-      offset, //sWidth
-      this.foreground.height, //sHeight
-      0, // dx
-      0, // dy
-      x, // dWidth
-      this.height // dHeight
+    const {canvasContext, width, height, foreground, background} = this;
+    const {imageWidth, imageHeight} = this.imageSize;
+
+    canvasContext.clearRect(0, 0, width, height);
+    const offset = x * (imageWidth / width);
+    canvasContext.drawImage(foreground,
+      0,
+      0,
+      offset,
+      imageHeight,
+      0,
+      0,
+      x,
+      height
     );
 
-    this.canvasContext.drawImage(this.background,
-      offset, // sx
-      0, // sy
-      this.background.width, // sWidth
-      this.background.height, // sHeight
-      x, // dx
-      0, // dy
-      this.width, // dWidth
-      this.height // dHeight
+    canvasContext.drawImage(background,
+      offset,
+      0,
+      imageWidth,
+      imageHeight,
+      x,
+      0,
+      width,
+      height
     );
   }
 
   private updateNumericDisplay() {
-    const progress = Math.round((this.currentX / this.width) * 100);
-    this.numericDisplay.innerHTML = this.config.numericDisplayFormatter(progress);
+    const {config, numericDisplay} = this;
+    if (config.showNumericDisplay) {
+      numericDisplay.innerHTML = config.numericDisplayFormatter(this.progress);
+    }
   }
 
   private loadImage(src: string): Promise<HTMLImageElement> {
-    if(!src) {
+    if (!src) {
       throw(new Error('[ImageFillProgressBar] Invalid image source'));
     }
 
@@ -161,7 +161,69 @@ export class ImageFillProgressBar {
     });
   }
 
+  private getTargetSize() {
+    const containerBB = this.container.getBoundingClientRect();
+
+    let targetHeight = containerBB.height;
+    const targetWidth = containerBB.width;
+
+    if (this.config.showNumericDisplay) {
+      const numericDisplayBB = this.numericDisplay.getBoundingClientRect();
+      targetHeight = containerBB.height - numericDisplayBB.height;
+    }
+
+    return {
+      targetHeight,
+      targetWidth
+    }
+  }
+
+  private getScale(targetWidth: number, targetHeight: number) {
+    const {imageWidth, imageHeight} = this.imageSize;
+    const vertScale = targetHeight / imageHeight;
+    const horizScale = targetWidth / imageWidth;
+
+    return Math.min(vertScale, horizScale);
+  }
+
+  private resolveContainer(): HTMLElement {
+    const {container} = this.config;
+    const resolvedContainer: HTMLElement = typeof container === 'string' ? document.querySelector(container) : container;
+
+    if (!isElement(resolvedContainer)) {
+      throw(new Error('[ImageFillProgressBar] Invalid container'));
+    }
+
+    return resolvedContainer;
+  }
+
   private cleanUp() {
     window.removeEventListener('resize', this.resize)
+  }
+
+  private setCanvas() {
+    this.canvas = this.container.querySelector('canvas');
+    this.canvasContext = this.canvas.getContext('2d');
+  }
+
+  private setContainer() {
+    this.container = this.resolveContainer();
+    this.container.innerHTML = this.template;
+  }
+
+  private setNumericDisplay() {
+    const {config} = this;
+    this.numericDisplay = this.container.querySelector('.numeric-display');
+    this.numericDisplay.style.display = config.showNumericDisplay ? 'block' : 'none';
+  }
+
+  private async loadImages() {
+    const {loadImage, config} = this;
+    this.foreground = await loadImage(config.foregroundSrc);
+    this.background = await loadImage(config.backgroundSrc);
+  }
+
+  private registerResizehandler() {
+    window.addEventListener('resize', this.resize.bind(this));
   }
 }

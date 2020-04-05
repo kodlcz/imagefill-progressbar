@@ -1,48 +1,46 @@
 
-export class ImageFillProgressBarConfig {
+export interface ImageFillProgressBarConfig {
+  /**
+   * The container where the loader is rendered
+   * can be a css selector or an HTML element
+   */
+  container: string | HTMLElement;
+
   /**
    * The duration in milliseconds of the animation.
+   * Default: 1000
    */
-  public animationDurationMs: number;
+  animationDurationMs?: number;
 
   /**
    * Flag whether to show or hide the numeric display.
+   * Default: true
    */
-  public showNumericDisplay: boolean;
+  showNumericDisplay?: boolean;
 
   /**
    * Formatter function for the numeric display.
    * Supports html strings.
    */
-  public numericDisplayFormatter: (val: number) => string;
+  numericDisplayFormatter?: (val: number) => string;
 
   /**
    * Called when the progress bar reaches 100%.
    */
-  public onComplete: () => void;
+  onComplete?: () => void;
 
   /**
    * The function describing the animation progression.
    */
-  public easingFunction: (t: number) => number;
+  easingFunction?: (t: number) => number;
 
   /**
    * The src of the background image.
    */
-  public backgroundSrc?: string;
+  backgroundSrc: string;
 
   /**
    * The src of the foreground image.
    */
-  public foregroundSrc?: string;
-
-  /**
-   * The width in pixels of the rendered progress bar.
-   */
-  public width?: number;
-
-  /**
-   * The height in pixels of the rendered progress bar.
-   */
-  public height?: number;
+  foregroundSrc: string;
 }
