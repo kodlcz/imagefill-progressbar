@@ -1,16 +1,15 @@
-import {easingFunctions, isElement} from './utils';
-import {ImageFillProgressBarConfig} from './ImageFillProgressBarConfig';
+import { easingFunctions, isElement } from './utils';
+import { ImageFillProgressBarConfig } from './ImageFillProgressBarConfig';
 
 export class ImageFillProgressBar {
   private readonly ratio = window.devicePixelRatio || 1;
   private readonly browserRefreshRate = 1000 / 60;
   private readonly config: ImageFillProgressBarConfig = {
     animationDurationMs: 1000,
-    onComplete: () => {
-    },
+    onComplete: () => {},
     easingFunction: easingFunctions.easeOutQuint,
     showNumericDisplay: true,
-    numericDisplayFormatter: (val: number) => val.toString(),
+    numericDisplayFormatter: (val: number) => Math.floor(val).toString(),
     backgroundSrc: null,
     foregroundSrc: null,
     container: ''
@@ -18,27 +17,39 @@ export class ImageFillProgressBar {
 
   private currentX = 0;
   private progress = 0;
+  private previousProgress = 0;
   private requestAnimationId: number = null;
   private canvas: HTMLCanvasElement;
   private canvasContext: CanvasRenderingContext2D;
   private container: HTMLElement;
   private numericDisplay: HTMLElement;
+  private numericDisplayWrapper: HTMLElement;
   private iterationCount: number;
   private width: number;
   private height: number;
   private foreground: HTMLImageElement;
   private background: HTMLImageElement;
   private template = `
-    <section class="imagefill-progressbar">
+    <section class="imagefill-progressbar"
+             style="
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+             ">
         <canvas></canvas>
-        <div class="numeric-display"></div>
-    </section> 
+        <div class="numeric-display-wrapper" style="text-align: center">
+            <div class="numeric-display"></div>
+        </div>
+    </section>
   `;
+
   private get imageSize() {
     return {
       imageWidth: this.foreground.width,
       imageHeight: this.foreground.height
-    }
+    };
   }
 
   constructor(config = {}) {
@@ -46,14 +57,17 @@ export class ImageFillProgressBar {
   }
 
   public update(progress: number) {
+    this.previousProgress = this.progress;
     this.progress = progress;
     window.cancelAnimationFrame(this.requestAnimationId);
-    this.animate()
+    this.animate();
   }
 
   async init(): Promise<void> {
-    const {config} = this;
-    this.iterationCount = Math.floor(config.animationDurationMs / this.browserRefreshRate);
+    const { config } = this;
+    this.iterationCount = Math.floor(
+      config.animationDurationMs / this.browserRefreshRate
+    );
 
     this.setContainer();
     this.setCanvas();
@@ -70,9 +84,9 @@ export class ImageFillProgressBar {
   }
 
   private updateCanvasSize() {
-    const {canvas, canvasContext, ratio, currentX} = this;
-    const {targetWidth, targetHeight} = this.getTargetSize();
-    const {imageWidth, imageHeight} = this.imageSize;
+    const { canvas, canvasContext, ratio, currentX } = this;
+    const { targetWidth, targetHeight } = this.getTargetSize();
+    const { imageWidth, imageHeight } = this.imageSize;
     const scale = this.getScale(targetWidth, targetHeight);
 
     this.width = scale * imageWidth;
@@ -87,25 +101,33 @@ export class ImageFillProgressBar {
     canvasContext.scale(ratio, ratio);
   }
 
-
   private animate() {
-    const {progress, width, step, currentX} = this;
-    const targetX = ((progress * width) / 100) - currentX;
-    this.requestAnimationId = window.requestAnimationFrame(step.bind(this, currentX, 0, targetX));
+    const { progress, width, step, currentX } = this;
+    const targetX = (progress * width) / 100 - currentX;
+    this.requestAnimationId = window.requestAnimationFrame(
+      step.bind(this, currentX, 0, targetX)
+    );
   }
 
   private step(offset: number, currentIteration: number, targetX: number) {
-    const {config, drawFrame, iterationCount, step, width} = this;
-    let x = config.easingFunction(currentIteration / iterationCount) * targetX;
+    const { config, drawFrame, iterationCount, step, width } = this;
+    const changePercent = currentIteration / iterationCount;
+    let x = config.easingFunction(changePercent) * targetX;
     x += offset;
     drawFrame.call(this, x);
     this.currentX = x;
     currentIteration++;
 
-    this.updateNumericDisplay();
+    const numericChange =
+      (this.progress - this.previousProgress) * changePercent +
+      this.previousProgress;
+
+    this.updateNumericDisplay(numericChange);
 
     if (currentIteration <= iterationCount) {
-      this.requestAnimationId = window.requestAnimationFrame(step.bind(this, offset, currentIteration, targetX));
+      this.requestAnimationId = window.requestAnimationFrame(
+        step.bind(this, offset, currentIteration, targetX)
+      );
     }
 
     if (x === width) {
@@ -114,12 +136,13 @@ export class ImageFillProgressBar {
   }
 
   private drawFrame(x: number) {
-    const {canvasContext, width, height, foreground, background} = this;
-    const {imageWidth, imageHeight} = this.imageSize;
+    const { canvasContext, width, height, foreground, background } = this;
+    const { imageWidth, imageHeight } = this.imageSize;
 
     canvasContext.clearRect(0, 0, width, height);
     const offset = x * (imageWidth / width);
-    canvasContext.drawImage(foreground,
+    canvasContext.drawImage(
+      foreground,
       0,
       0,
       offset,
@@ -130,7 +153,8 @@ export class ImageFillProgressBar {
       height
     );
 
-    canvasContext.drawImage(background,
+    canvasContext.drawImage(
+      background,
       offset,
       0,
       imageWidth,
@@ -142,16 +166,16 @@ export class ImageFillProgressBar {
     );
   }
 
-  private updateNumericDisplay() {
-    const {config, numericDisplay} = this;
+  private updateNumericDisplay(value: number) {
+    const { config, numericDisplay } = this;
     if (config.showNumericDisplay) {
-      numericDisplay.innerHTML = config.numericDisplayFormatter(this.progress);
+      numericDisplay.innerHTML = config.numericDisplayFormatter(value);
     }
   }
 
   private loadImage(src: string): Promise<HTMLImageElement> {
     if (!src) {
-      throw(new Error('[ImageFillProgressBar] Invalid image source'));
+      throw new Error('[ImageFillProgressBar] Invalid image source');
     }
 
     return new Promise((resolve) => {
@@ -168,18 +192,18 @@ export class ImageFillProgressBar {
     const targetWidth = containerBB.width;
 
     if (this.config.showNumericDisplay) {
-      const numericDisplayBB = this.numericDisplay.getBoundingClientRect();
+      const numericDisplayBB = this.numericDisplayWrapper.getBoundingClientRect();
       targetHeight = containerBB.height - numericDisplayBB.height;
     }
 
     return {
       targetHeight,
       targetWidth
-    }
+    };
   }
 
   private getScale(targetWidth: number, targetHeight: number) {
-    const {imageWidth, imageHeight} = this.imageSize;
+    const { imageWidth, imageHeight } = this.imageSize;
     const vertScale = targetHeight / imageHeight;
     const horizScale = targetWidth / imageWidth;
 
@@ -187,18 +211,21 @@ export class ImageFillProgressBar {
   }
 
   private resolveContainer(): HTMLElement {
-    const {container} = this.config;
-    const resolvedContainer: HTMLElement = typeof container === 'string' ? document.querySelector(container) : container;
+    const { container } = this.config;
+    const resolvedContainer: HTMLElement =
+      typeof container === 'string'
+        ? document.querySelector(container)
+        : container;
 
     if (!isElement(resolvedContainer)) {
-      throw(new Error('[ImageFillProgressBar] Invalid container'));
+      throw new Error('[ImageFillProgressBar] Invalid container');
     }
 
     return resolvedContainer;
   }
 
   private cleanUp() {
-    window.removeEventListener('resize', this.resize)
+    window.removeEventListener('resize', this.resize);
   }
 
   private setCanvas() {
@@ -212,13 +239,19 @@ export class ImageFillProgressBar {
   }
 
   private setNumericDisplay() {
-    const {config} = this;
+    const { config } = this;
     this.numericDisplay = this.container.querySelector('.numeric-display');
-    this.numericDisplay.style.display = config.showNumericDisplay ? 'block' : 'none';
+    this.numericDisplayWrapper = this.container.querySelector(
+      '.numeric-display-wrapper'
+    );
+    this.numericDisplayWrapper.style.display = config.showNumericDisplay
+      ? 'block'
+      : 'none';
+    this.updateNumericDisplay(this.progress);
   }
 
   private async loadImages() {
-    const {loadImage, config} = this;
+    const { loadImage, config } = this;
     this.foreground = await loadImage(config.foregroundSrc);
     this.background = await loadImage(config.backgroundSrc);
   }

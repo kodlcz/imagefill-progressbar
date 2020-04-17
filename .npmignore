@@ -1,5 +1,6 @@
 .idea
 .DS_Store
+.prettierrc
 **/.*
 **/webpack.common.js
 **/webpack.dev.js
