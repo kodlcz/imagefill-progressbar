@@ -17,7 +17,8 @@
     "build:examples": "cd examples && cross-env webpack --config webpack.config.js",
     "prebuild:examples": "npm run clean:examples",
     "clean:examples": "shx rm -rf examples/dist",
-    "start:examples": "cd examples && webpack-dev-server --mode development"
+    "start:examples": "cd examples && webpack-dev-server --mode development",
+    "deploy": "gh-pages -d examples/dist"
   },
   "keywords": [
     "progressbar",
@@ -56,5 +57,8 @@
     "webpack-cli": "^3.3.6",
     "webpack-dev-server": "^3.7.2",
     "webpack-merge": "^4.2.2"
+  },
+  "dependencies": {
+    "gh-pages": "^2.2.0"
   }
 }
