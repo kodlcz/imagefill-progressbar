@@ -28,13 +28,17 @@ module.exports = {
     ]
   },
   plugins: [
-    new CopyWebpackPlugin([
-      {from: 'assets', to: 'assets'},
-      {from: 'index.html'}
-    ])
+    new CopyWebpackPlugin({
+      patterns: [
+        {from: 'assets', to: 'assets'},
+        {from: 'index.html'}
+      ]
+    })
   ],
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    static: {
+      directory: path.join(__dirname, 'dist'),
+    },
     open: true
   }
 };
