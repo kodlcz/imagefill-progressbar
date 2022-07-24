@@ -1,3 +1,4 @@
+import { EasingFunction } from "./easing-functions.enum";
 
 export interface ImageFillProgressBarConfig {
   /**
@@ -32,7 +33,7 @@ export interface ImageFillProgressBarConfig {
   /**
    * The function describing the animation progression.
    */
-  easingFunction?: (t: number) => number;
+  easingFunction?: EasingFunction
 
   /**
    * The src of the background image.
@@ -43,4 +44,10 @@ export interface ImageFillProgressBarConfig {
    * The src of the foreground image.
    */
   foregroundSrc: string;
+
+  /**
+   * Draws the images from bottom to top
+   * Default: false
+   */
+  drawVertical?: boolean
 }

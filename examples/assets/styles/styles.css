@@ -7,8 +7,11 @@
   font-style: normal;
 }
 
-html, body {
+html {
   height: 100vh;
+}
+
+html, body {
   width: 100vw;
   margin: 0;
   padding: 0;
@@ -27,11 +30,7 @@ body {
   display: grid;
   grid-template-columns: 47% 47%;
   grid-gap: 40px;
-
   color: #444;
-  height: 50%;
-  justify-content: space-around;
-  width: 90%;
 }
 
 .section {
@@ -50,9 +49,10 @@ body {
 }
 
 .halloween-section {
-  font-family: 'a_charming_fontregular', serif;
+  font-family:  serif;
   height: 100%;
   width: 100%;
+
 }
 
 .city-section {
@@ -63,18 +63,19 @@ body {
 h1 {
   margin: 0;
   padding: 0;
-  font-size: 50px;
+  font-size: 40px;
   letter-spacing: 2px;
 }
 
 .title {
   color: #333;
   margin-bottom: 40px;
+  margin-top: 40px;
   font-family: monospace;
 }
 
 .halloween-value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: bold;
   letter-spacing: 2px;
 }

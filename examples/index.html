@@ -1,24 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8"/>
     <title>ImageFillProgressBar examples</title>
-    <link rel="stylesheet" type="text/css" href="assets/styles/styles.css" />
-  </head>
-  <body>
-    <h1 class="title">Image fill progressbar</h1>
-    <div class="grid-container">
-      <section class="section">
+    <link rel="stylesheet" type="text/css" href="assets/styles/styles.css"/>
+</head>
+<body>
+<h1 class="title">Image fill progressbar</h1>
+<div class="grid-container">
+    <section class="section">
         <div class="city-section"></div>
-      </section>
-      <section class="section">
+    </section>
+    <section class="section" style="display: flex; justify-content: center">
+        <div style="display: flex; justify-content: center; flex-direction: column; margin-right: 20px">
+            <div style="margin-bottom: 5px">
+                <label for="daily-goal-input" style="display: inline-block; width: 80px">Daily Goal</label>
+                <input type="number" id="daily-goal-input" value="2" style="width: 50px">
+                liters
+            </div>
+            <div style="margin-bottom: 20px">
+                <label for="daily-goal-input" style="display: inline-block; width: 80px">Glass Size</label>
+                <input type="number" id="glass-size-input" value="0.25" style="width: 50px">
+                liters
+            </div>
+            <div>
+                <button id="add-glass-button" style="width: 60px">Add</button>
+                <button id="reset-button" style="width: 60px">Reset</button>
+            </div>
+        </div>
+        <div class="bottle-section"></div>
+
+
+    </section>
+    <section class="section" style="position: relative">
         <div class="halloween-section"></div>
+        <button id="fast-forward" style="position:absolute; top: 20px; right: 20px">Fast forward</button>
         <a href="https://www.freepik.com/free-photos-vectors/background"
         >Background vector created by brgfx - www.freepik.com</a
         >
-      </section>
-    </div>
+    </section>
+    <section class="section">
+        <div class="customizable-fill-section"></div>
+        <div>
+            <input type="checkbox" id="show-numeric-display">
+            <label for="show-numeric-display">Show numeric display</label>
+        </div>
+        <div>
+            <input type="number" name="animationDurationMs" id="animation-duration-ms">
+            <label for="animation-duration-ms">Animation Duration (millisecond)</label>
+        </div>
+        <button id="run-button" style="width: 60px">Run</button>
 
-    <script type="text/javascript" src="index.js"></script>
-  </body>
+    </section>
+</div>
+
+<script type="text/javascript" src="index.js"></script>
+</body>
 </html>

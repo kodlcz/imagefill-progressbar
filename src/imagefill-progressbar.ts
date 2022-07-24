@@ -1,21 +1,25 @@
-import { easingFunctions, isElement } from './utils';
+import { easingFunctions, htmlToElement, isElement } from './utils';
 import { ImageFillProgressBarConfig } from './ImageFillProgressBarConfig';
+import { EasingFunction } from './easing-functions.enum';
 
 export class ImageFillProgressBar {
   private readonly ratio = window.devicePixelRatio || 1;
   private readonly browserRefreshRate = 1000 / 60;
+
   private readonly config: ImageFillProgressBarConfig = {
     animationDurationMs: 1000,
     onComplete: () => {},
-    easingFunction: easingFunctions.easeOutQuint,
+    easingFunction: EasingFunction.easeOutQuint,
     showNumericDisplay: true,
     numericDisplayFormatter: (val: number) => Math.floor(val).toString(),
     backgroundSrc: null,
     foregroundSrc: null,
+    drawVertical: false,
     container: ''
   };
 
   private currentX = 0;
+  private currentY = 0;
   private progress = 0;
   private previousProgress = 0;
   private requestAnimationId: number = null;
@@ -54,8 +58,13 @@ export class ImageFillProgressBar {
 
   constructor(config = {}) {
     this.config = Object.assign({}, this.config, config);
+    this.resize = this.resize.bind(this);
   }
 
+  /**
+     Function to update the progress bar
+     @param {number}progress - represents the new progress value in terms of percentage
+     */
   public update(progress: number) {
     this.previousProgress = this.progress;
     this.progress = progress;
@@ -63,7 +72,10 @@ export class ImageFillProgressBar {
     this.animate();
   }
 
-  async init(): Promise<void> {
+  /**
+     Asynchronous function to initialize the progress bar
+     */
+  public async init(): Promise<void> {
     const { config } = this;
     this.iterationCount = Math.floor(
       config.animationDurationMs / this.browserRefreshRate
@@ -73,18 +85,26 @@ export class ImageFillProgressBar {
     this.setCanvas();
     this.setNumericDisplay();
     await this.loadImages();
-    this.registerResizehandler();
+    this.registerResizeHandler();
     this.updateCanvasSize();
     this.animate();
   }
 
+  /**
+     Cleanup function, to call whenever removing the component from the DOM
+     */
+  public cleanUp() {
+    window.removeEventListener('resize', this.resize);
+    window.cancelAnimationFrame(this.requestAnimationId);
+  }
+
   private resize() {
     this.updateCanvasSize();
-    this.drawFrame(this.currentX);
+    this.drawFrame(this.currentX, this.currentY);
   }
 
   private updateCanvasSize() {
-    const { canvas, canvasContext, ratio, currentX } = this;
+    const { canvas, canvasContext, ratio, currentX, currentY } = this;
     const { targetWidth, targetHeight } = this.getTargetSize();
     const { imageWidth, imageHeight } = this.imageSize;
     const scale = this.getScale(targetWidth, targetHeight);
@@ -93,6 +113,7 @@ export class ImageFillProgressBar {
     this.height = scale * imageHeight;
 
     this.currentX = currentX > 0 ? (currentX / this.width) * targetWidth : 0;
+    this.currentY = currentY > 0 ? (currentY / this.height) * targetHeight : 0;
 
     canvas.width = this.width * ratio;
     canvas.height = this.height * ratio;
@@ -102,20 +123,32 @@ export class ImageFillProgressBar {
   }
 
   private animate() {
-    const { progress, width, step, currentX } = this;
+    const { progress, width, height, step, currentX, currentY } = this;
     const targetX = (progress * width) / 100 - currentX;
+    const targetY = (progress * height) / 100 - currentY;
     this.requestAnimationId = window.requestAnimationFrame(
-      step.bind(this, currentX, 0, targetX)
+      step.bind(this, currentX, currentY, 0, targetX, targetY)
     );
   }
 
-  private step(offset: number, currentIteration: number, targetX: number) {
+  private step(
+    currentX: number,
+    currentY: number,
+    currentIteration: number,
+    targetX: number,
+    targetY: number
+  ) {
     const { config, drawFrame, iterationCount, step, width } = this;
     const changePercent = currentIteration / iterationCount;
-    let x = config.easingFunction(changePercent) * targetX;
-    x += offset;
-    drawFrame.call(this, x);
+    let x = easingFunctions[config.easingFunction](changePercent) * targetX;
+    x += currentX;
+
+    let y = easingFunctions[config.easingFunction](changePercent) * targetY;
+    y += currentY;
+
+    drawFrame.call(this, x, y);
     this.currentX = x;
+    this.currentY = y;
     currentIteration++;
 
     const numericChange =
@@ -126,7 +159,7 @@ export class ImageFillProgressBar {
 
     if (currentIteration <= iterationCount) {
       this.requestAnimationId = window.requestAnimationFrame(
-        step.bind(this, offset, currentIteration, targetX)
+        step.bind(this, currentX, currentY, currentIteration, targetX, targetY)
       );
     }
 
@@ -135,10 +168,56 @@ export class ImageFillProgressBar {
     }
   }
 
-  private drawFrame(x: number) {
+  private drawFrame(currentX: number, currentY: number) {
+    if (this.config.drawVertical) {
+      this.drawVertical(currentY);
+    } else {
+      this.drawHorizontal(currentX);
+    }
+  }
+
+  private drawVertical(y: number) {
     const { canvasContext, width, height, foreground, background } = this;
     const { imageWidth, imageHeight } = this.imageSize;
 
+    canvasContext.clearRect(0, 0, width, height);
+    const offset = y * (imageHeight / height);
+
+    canvasContext.drawImage(
+      foreground,
+      0,
+      imageHeight - offset,
+      imageWidth,
+      imageHeight,
+      0,
+      height - y,
+      width,
+      height
+    );
+
+    canvasContext.drawImage(
+      background,
+      0,
+      0,
+      imageWidth,
+      imageHeight - offset,
+      0,
+      0,
+      width,
+      height - y
+    );
+  }
+
+  private drawHorizontal(x: number) {
+    const {
+      canvasContext,
+      width,
+      height,
+      foreground,
+      background,
+      config
+    } = this;
+    const { imageWidth, imageHeight } = this.imageSize;
     canvasContext.clearRect(0, 0, width, height);
     const offset = x * (imageWidth / width);
     canvasContext.drawImage(
@@ -224,10 +303,6 @@ export class ImageFillProgressBar {
     return resolvedContainer;
   }
 
-  private cleanUp() {
-    window.removeEventListener('resize', this.resize);
-  }
-
   private setCanvas() {
     this.canvas = this.container.querySelector('canvas');
     this.canvasContext = this.canvas.getContext('2d');
@@ -235,7 +310,7 @@ export class ImageFillProgressBar {
 
   private setContainer() {
     this.container = this.resolveContainer();
-    this.container.innerHTML = this.template;
+    this.container.appendChild(htmlToElement(this.template));
   }
 
   private setNumericDisplay() {
@@ -256,7 +331,7 @@ export class ImageFillProgressBar {
     this.background = await loadImage(config.backgroundSrc);
   }
 
-  private registerResizehandler() {
-    window.addEventListener('resize', this.resize.bind(this));
+  private registerResizeHandler() {
+    window.addEventListener('resize', this.resize);
   }
 }
